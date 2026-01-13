@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REDCap-Girder Integration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .tree {
+            list-style: none;
+        }
+        
+        .tree-item {
+            margin: 5px 0;
+        }
+        
+        .tree-toggle {
+            cursor: pointer;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            user-select: none;
+            transition: background 0.2s;
+        }
+        
+        .tree-toggle:hover {
+            background: #e9ecef;
+        }
+        
+        .tree-toggle::before {
+            content: '▶';
+            margin-right: 8px;
+            transition: transform 0.2s;
+            font-size: 10px;
+            color: #667eea;
+        }
+        
+        .tree-toggle.expanded::before {
+            transform: rotate(90deg);
+        }
+        
+        .tree-content {
+            display: none;
+            margin-left: 20px;
+            margin-top: 5px;
+        }
+        
+        .tree-content.expanded {
+            display: block;
+        }
+        
+        .center-item {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 16px;
+        }
+        
+        .patient-item {
+            font-weight: 500;
+            color: #495057;
+            font-size: 15px;
+        }
+        
+        .visit-item {
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .document-item {
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .document-name {
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .upload-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .btn-upload {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+        
+        .btn-upload:hover {
+            background: #5568d3;
+        }
+        
+        
+        .file-list {
+            margin-top: 8px;
+            padding-left: 20px;
+        }
+        
+        .file-item {
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            margin: 3px 0;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+        
+        .file-name {
+            color: #495057;
+        }
+        
+        .file-status {
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        
+        .status-synced {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .btn-sync {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+        
+        .btn-sync:hover:not(:disabled) {
+            background: #218838;
+        }
+        
+        .btn-sync:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+            height: 4px;
+            background: #e9ecef;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .progress-bar-container.show {
+            display: block;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: #667eea;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .upload-progress-wrapper {
+            margin-top: 5px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .upload-progress-wrapper.show {
+            display: block;
+        }
+        
+        .progress-text {
+            font-size: 11px;
+            color: #6c757d;
+            margin-top: 4px;
+        }
+        
+        .alert {
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .alert.show {
+            display: block;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 5px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 REDCap-Girder Integration</h1>
+        
+        <div id="alert" class="alert"></div>
+        
+        <div id="treeContainer"></div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin || 'http://localhost:8000';
+        
+        // Load structure on page load
+        window.onload = () => {
+            loadStructure();
+        };
+        
+        async function loadStructure() {
+            try {
+                const res = await fetch(`${API_URL}/api/structure`);
+                const data = await res.json();
+                renderTree(data.structure);
+            } catch (error) {
+                console.error('Error loading structure:', error);
+                showAlert('Error loading structure: ' + error.message, 'error');
+            }
+        }
+        
+        function renderTree(structure) {
+            const container = document.getElementById('treeContainer');
+            const tree = document.createElement('ul');
+            tree.className = 'tree';
+            
+            structure.forEach(center => {
+                const centerItem = createCenterItem(center);
+                tree.appendChild(centerItem);
+            });
+            
+            container.innerHTML = '';
+            container.appendChild(tree);
+        }
+        
+        function createCenterItem(center) {
+            const li = document.createElement('li');
+            li.className = 'tree-item';
+            
+            const toggle = document.createElement('div');
+            toggle.className = 'tree-toggle center-item';
+            toggle.textContent = center.name;
+            toggle.onclick = () => toggleExpand(toggle, content);
+            
+            const content = document.createElement('ul');
+            content.className = 'tree-content';
+            
+            center.patients.forEach(patient => {
+                const patientItem = createPatientItem(patient, center);
+                content.appendChild(patientItem);
+            });
+            
+            li.appendChild(toggle);
+            li.appendChild(content);
+            
+            return li;
+        }
+        
+        function createPatientItem(patient, center) {
+            const li = document.createElement('li');
+            li.className = 'tree-item';
+            
+            const toggle = document.createElement('div');
+            toggle.className = 'tree-toggle patient-item';
+            toggle.textContent = patient.patient_id;
+            toggle.onclick = () => toggleExpand(toggle, content);
+            
+            const content = document.createElement('ul');
+            content.className = 'tree-content';
+            
+            patient.visits.forEach(visit => {
+                const visitItem = createVisitItem(visit, patient, center);
+                content.appendChild(visitItem);
+            });
+            
+            li.appendChild(toggle);
+            li.appendChild(content);
+            
+            return li;
+        }
+        
+        function createVisitItem(visit, patient, center) {
+            const li = document.createElement('li');
+            li.className = 'tree-item';
+            
+            const toggle = document.createElement('div');
+            toggle.className = 'tree-toggle visit-item';
+            toggle.textContent = visit.visit_name;
+            toggle.onclick = () => toggleExpand(toggle, content);
+            
+            const content = document.createElement('ul');
+            content.className = 'tree-content';
+            
+            visit.document_types.forEach(docType => {
+                const docItem = createDocumentItem(docType, visit, patient, center);
+                content.appendChild(docItem);
+            });
+            
+            li.appendChild(toggle);
+            li.appendChild(content);
+            
+            return li;
+        }
+        
+        function createDocumentItem(docType, visit, patient, center) {
+            const li = document.createElement('li');
+            li.className = 'tree-item';
+            
+            const docDiv = document.createElement('div');
+            docDiv.className = 'document-item';
+            
+            const docName = document.createElement('span');
+            docName.className = 'document-name';
+            docName.textContent = docType.document_name;
+            
+            const uploadSection = document.createElement('div');
+            uploadSection.className = 'upload-section';
+            
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.className = 'file-input';
+            fileInput.id = `file-${docType.id}`;
+            fileInput.onchange = () => uploadFile(docType.id, fileInput);
+            
+            const btnUpload = document.createElement('button');
+            btnUpload.className = 'btn-upload';
+            btnUpload.textContent = 'Upload';
+            btnUpload.onclick = () => fileInput.click();
+            
+            uploadSection.appendChild(fileInput);
+            uploadSection.appendChild(btnUpload);
+            
+            docDiv.appendChild(docName);
+            docDiv.appendChild(uploadSection);
+            
+            const fileList = document.createElement('div');
+            fileList.className = 'file-list';
+            fileList.id = `files-${docType.id}`;
+            
+            // Load existing files
+            loadFiles(docType.id, fileList);
+            
+            li.appendChild(docDiv);
+            li.appendChild(fileList);
+            
+            return li;
+        }
+        
+        function toggleExpand(toggle, content) {
+            toggle.classList.toggle('expanded');
+            content.classList.toggle('expanded');
+        }
+        
+        async function uploadFile(documentTypeId, fileInput) {
+            if (!fileInput.files[0]) return;
+            
+            const formData = new FormData();
+            formData.append('document_type_id', documentTypeId);
+            formData.append('file', fileInput.files[0]);
+            
+            // Show loading state
+            const btnUpload = fileInput.nextElementSibling;
+            const originalText = btnUpload.textContent;
+            btnUpload.disabled = true;
+            btnUpload.textContent = 'Uploading...';
+            
+            // Create progress bar
+            const fileList = document.getElementById(`files-${documentTypeId}`);
+            const progressWrapper = document.createElement('div');
+            progressWrapper.className = 'upload-progress-wrapper show';
+            progressWrapper.id = `upload-progress-${documentTypeId}`;
+            
+            const progressBar = document.createElement('div');
+            progressBar.className = 'progress-bar-container show';
+            const progressBarFill = document.createElement('div');
+            progressBarFill.className = 'progress-bar';
+            progressBar.appendChild(progressBarFill);
+            
+            const progressText = document.createElement('div');
+            progressText.className = 'progress-text';
+            progressText.textContent = 'Uploading... 0%';
+            
+            progressWrapper.appendChild(progressBar);
+            progressWrapper.appendChild(progressText);
+            fileList.appendChild(progressWrapper);
+            
+            try {
+                // Use XMLHttpRequest for progress tracking
+                const xhr = new XMLHttpRequest();
+                
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const percent = Math.round((e.loaded / e.total) * 100);
+                        progressBarFill.style.width = percent + '%';
+                        progressText.textContent = `Uploading... ${percent}%`;
+                    }
+                });
+                
+                xhr.addEventListener('load', () => {
+                    if (xhr.status === 200) {
+                        const data = JSON.parse(xhr.responseText);
+                        progressBarFill.style.width = '100%';
+                        progressText.textContent = 'Upload complete!';
+                        
+                        // Check if it's direct upload (has file.girder_file_id) or local upload
+                        if (data.file && data.file.girder_file_id) {
+                            // Direct upload to Girder
+                            showAlert(`File "${data.file.filename}" uploaded directly to Girder!`, 'success');
+                        } else {
+                            // Local upload
+                            showAlert(`File "${data.filename}" uploaded. Click "Sync with Girder" to sync.`, 'success');
+                        }
+                        
+                        fileInput.value = '';
+                        
+                        setTimeout(() => {
+                            progressWrapper.remove();
+                            loadFiles(documentTypeId, fileList);
+                        }, 500);
+                    } else {
+                        const data = JSON.parse(xhr.responseText);
+                        progressWrapper.remove();
+                        showAlert(`Error: ${data.detail || 'Failed to upload file'}`, 'error');
+                    }
+                    btnUpload.disabled = false;
+                    btnUpload.textContent = originalText;
+                });
+                
+                xhr.addEventListener('error', () => {
+                    progressWrapper.remove();
+                    showAlert(`Error uploading file: Network error`, 'error');
+                    btnUpload.disabled = false;
+                    btnUpload.textContent = originalText;
+                });
+                
+                xhr.open('POST', `${API_URL}/api/upload`);
+                xhr.send(formData);
+                
+            } catch (error) {
+                progressWrapper.remove();
+                showAlert(`Error uploading file: ${error.message}`, 'error');
+                btnUpload.disabled = false;
+                btnUpload.textContent = originalText;
+            }
+        }
+        
+        async function loadFiles(documentTypeId, container) {
+            try {
+                const res = await fetch(`${API_URL}/api/files/${documentTypeId}`);
+                const data = await res.json();
+                
+                // Remove only file items, keep progress wrapper if exists
+                const existingItems = container.querySelectorAll('.file-item');
+                existingItems.forEach(item => item.remove());
+                
+                if (data.files && data.files.length > 0) {
+                    data.files.forEach(file => {
+                        const fileItem = document.createElement('div');
+                        fileItem.className = 'file-item';
+                        fileItem.id = `file-item-${file.id}`;
+                        
+                        const fileInfo = document.createElement('div');
+                        fileInfo.className = 'file-info';
+                        
+                        const fileName = document.createElement('span');
+                        fileName.className = 'file-name';
+                        fileName.textContent = `${file.filename} (${(file.file_size / 1024).toFixed(2)} KB)`;
+                        
+                        const status = document.createElement('span');
+                        status.className = `file-status ${file.synced_to_girder ? 'status-synced' : 'status-pending'}`;
+                        status.textContent = file.synced_to_girder ? 'Synced' : 'Pending';
+                        
+                        fileInfo.appendChild(fileName);
+                        fileInfo.appendChild(status);
+                        
+                        const actions = document.createElement('div');
+                        actions.className = 'file-actions';
+                        
+                        // Add sync button only if not synced
+                        if (!file.synced_to_girder) {
+                            const btnSync = document.createElement('button');
+                            btnSync.className = 'btn-sync';
+                            btnSync.textContent = 'Sync with Girder';
+                            btnSync.onclick = () => syncFileToGirder(file.id, documentTypeId, container);
+                            actions.appendChild(btnSync);
+                        }
+                        
+                        fileItem.appendChild(fileInfo);
+                        fileItem.appendChild(actions);
+                        
+                        container.appendChild(fileItem);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading files:', error);
+            }
+        }
+        
+        async function syncFileToGirder(fileId, documentTypeId, container) {
+            const fileItem = document.getElementById(`file-item-${fileId}`);
+            if (!fileItem) return;
+            
+            const btnSync = fileItem.querySelector('.btn-sync');
+            if (!btnSync) return;
+            
+            const originalText = btnSync.textContent;
+            btnSync.disabled = true;
+            btnSync.textContent = 'Syncing...';
+            
+            // Add loading indicator
+            const loadingSpinner = document.createElement('span');
+            loadingSpinner.className = 'loading';
+            btnSync.appendChild(loadingSpinner);
+            
+            try {
+                const formData = new FormData();
+                formData.append('file_id', fileId);
+                
+                const res = await fetch(`${API_URL}/api/sync-to-girder`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    showAlert(data.message || `File synced to Girder successfully!`, 'success');
+                    // Reload files to update status
+                    loadFiles(documentTypeId, container);
+                } else {
+                    showAlert(`Error: ${data.detail || 'Failed to sync file'}`, 'error');
+                    btnSync.disabled = false;
+                    btnSync.textContent = originalText;
+                    loadingSpinner.remove();
+                }
+            } catch (error) {
+                showAlert(`Error syncing file: ${error.message}`, 'error');
+                btnSync.disabled = false;
+                btnSync.textContent = originalText;
+                loadingSpinner.remove();
+            }
+        }
+        
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = `alert alert-${type} show`;
+            setTimeout(() => {
+                alert.classList.remove('show');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
+

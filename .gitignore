@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environment
+venv/
+env/
+ENV/
+bin/
+lib/
+include/
+pyvenv.cfg
+.venv/
+
+# Database (will be created automatically)
+*.db
+*.sqlite
+*.sqlite3
+redcap_mimic.db
+
+# Uploaded files (user data)
+uploads/
+*.dcm
+*.DCM
+*.zip
+*.ZIP
+
+# Environment variables (sensitive)
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Airflow (not needed for POC demo)
+airflow_home/
+airflow.db
+dags/
+AIRFLOW_SETUP.md
+DAG_EXPLANATION.md
+requirements-airflow.txt

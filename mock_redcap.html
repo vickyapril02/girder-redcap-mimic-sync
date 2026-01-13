@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock REDCap - Patient Data Entry</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .form-container {
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .response-details {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .response-details.show {
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .test-data-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .test-data-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .test-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .btn-test {
+            background: #17a2b8;
+            font-size: 14px;
+            padding: 10px;
+        }
+
+        .progress-container {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .progress-container.show {
+            display: block;
+        }
+
+        .progress-bar-wrapper {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .progress-info span {
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔬 Mock REDCap Interface</h1>
+            <p>Simulate REDCap data entry for CHU patient data collection</p>
+        </div>
+
+        <div class="form-container">
+            <div id="alert" class="alert"></div>
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Sending data to webhook...</p>
+            </div>
+
+            <form id="patientForm">
+                <div class="form-group">
+                    <label for="center_code">CHU Center Code *</label>
+                    <input 
+                        type="text" 
+                        id="center_code" 
+                        name="center_code" 
+                        placeholder="e.g., Bordeaux, Paris, Lyon"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="patient_id">Patient ID *</label>
+                    <input 
+                        type="text" 
+                        id="patient_id" 
+                        name="patient_id" 
+                        placeholder="e.g., CHUBDX_001"
+                        required
+                    >
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="age">Age *</label>
+                        <input 
+                            type="number" 
+                            id="age" 
+                            name="age" 
+                            min="0" 
+                            max="150"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sex">Sex *</label>
+                        <select id="sex" name="sex" required>
+                            <option value="">Select...</option>
+                            <option value="M">Male</option>
+                            <option value="F">Female</option>
+                            <option value="O">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn">Submit to Webhook</button>
+            </form>
+
+            <div id="progressContainer" class="progress-container">
+                <div class="progress-bar-wrapper">
+                    <div id="progressBar" class="progress-bar">0%</div>
+                </div>
+                <div class="progress-info">
+                    <span id="progressText">Preparing upload...</span>
+                    <span id="timeRemaining">Calculating...</span>
+                </div>
+            </div>
+
+            <div id="responseDetails" class="response-details"></div>
+
+            <div class="test-data-section">
+                <h3>Quick Test Data</h3>
+                <p style="margin-bottom: 15px; color: #666; font-size: 14px;">
+                    Click a button below to auto-fill the form with sample data:
+                </p>
+                <div class="test-buttons">
+                    <button class="btn btn-test" onclick="fillTestData('Bordeaux', 'CHUBDX_001', 62, 'M')">
+                        CHU Bordeaux - Patient 1
+                    </button>
+                    <button class="btn btn-test" onclick="fillTestData('Bordeaux', 'CHUBDX_002', 45, 'F')">
+                        CHU Bordeaux - Patient 2
+                    </button>
+                    <button class="btn btn-test" onclick="fillTestData('Paris', 'CHUPAR_001', 38, 'M')">
+                        CHU Paris - Patient 1
+                    </button>
+                    <button class="btn btn-test" onclick="fillTestData('Lyon', 'CHULYO_001', 55, 'F')">
+                        CHU Lyon - Patient 1
+                    </button>
+                </div>
+            </div>
+
+            <div class="test-data-section">
+                <h3>📁 File Upload Test</h3>
+                <p style="margin-bottom: 15px; color: #666; font-size: 14px;">
+                    Upload DICOM files or other data files along with patient metadata:
+                </p>
+                
+                <form id="fileUploadForm" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="upload_center_code">CHU Center Code *</label>
+                        <input 
+                            type="text" 
+                            id="upload_center_code" 
+                            name="center_code" 
+                            placeholder="e.g., Bordeaux, Paris, Lyon"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="upload_patient_id">Patient ID *</label>
+                        <input 
+                            type="text" 
+                            id="upload_patient_id" 
+                            name="patient_id" 
+                            placeholder="e.g., CHUBDX_001"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="upload_age">Age *</label>
+                            <input 
+                                type="number" 
+                                id="upload_age" 
+                                name="age" 
+                                min="0" 
+                                max="150"
+                                required
+                            >
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="upload_sex">Sex *</label>
+                            <select id="upload_sex" name="sex" required>
+                                <option value="">Select...</option>
+                                <option value="M">Male</option>
+                                <option value="F">Female</option>
+                                <option value="O">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="upload_files">Select Files (DICOM, ZIP archives, images, etc.) *</label>
+                        <input 
+                            type="file" 
+                            id="upload_files" 
+                            name="files" 
+                            multiple 
+                            accept=".dcm,.dicom,.zip,.rar,.7z,.tar,.gz,.jpg,.jpeg,.png,.pdf,.txt,.csv"
+                        >
+                        <small style="color: #666; display: block; margin-top: 5px;">
+                            You can select multiple files. Supported: DICOM (.dcm, .dicom), ZIP archives (.zip, .rar, .7z) - uploaded as-is, Images (.jpg, .png), PDF, Text files
+                        </small>
+                    </div>
+                    
+                    <button type="submit" class="btn">Upload Files to Girder</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin || 'http://localhost:8000';
+        const WEBHOOK_URL = `${API_URL}/redcap/webhook`;
+
+        function showAlert(message, type = 'info') {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = `alert alert-${type} show`;
+            setTimeout(() => {
+                alert.classList.remove('show');
+            }, 5000);
+        }
+
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            if (show) {
+                loading.classList.add('show');
+            } else {
+                loading.classList.remove('show');
+            }
+        }
+
+        function showResponseDetails(data) {
+            const details = document.getElementById('responseDetails');
+            details.textContent = JSON.stringify(data, null, 2);
+            details.classList.add('show');
+        }
+
+        function fillTestData(center, patientId, age, sex) {
+            document.getElementById('center_code').value = center;
+            document.getElementById('patient_id').value = patientId;
+            document.getElementById('age').value = age;
+            document.getElementById('sex').value = sex;
+            showAlert('Form filled with test data. Click "Submit to Webhook" to send.', 'info');
+        }
+
+        document.getElementById('patientForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                center_code: document.getElementById('center_code').value,
+                patient_id: document.getElementById('patient_id').value,
+                age: parseInt(document.getElementById('age').value),
+                sex: document.getElementById('sex').value
+            };
+
+            showLoading(true);
+            document.getElementById('responseDetails').classList.remove('show');
+
+            try {
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert(`✅ Success! Patient ${formData.patient_id} synced to Girder.`, 'success');
+                    showResponseDetails(data);
+                } else {
+                    showAlert(`❌ Error: ${data.detail || 'Failed to sync patient data'}`, 'error');
+                    showResponseDetails(data);
+                }
+            } catch (error) {
+                showAlert(`❌ Network Error: ${error.message}. Make sure the FastAPI server is running.`, 'error');
+                console.error('Error:', error);
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        // Progress tracking variables
+        let uploadStartTime = null;
+        let progressInterval = null;
+
+        function updateProgress(loaded, total) {
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const timeRemaining = document.getElementById('timeRemaining');
+            
+            if (total === 0) {
+                progressBar.style.width = '0%';
+                progressBar.textContent = '0%';
+                progressText.textContent = 'Preparing upload...';
+                timeRemaining.textContent = 'Calculating...';
+                return;
+            }
+            
+            const percent = Math.round((loaded / total) * 100);
+            progressBar.style.width = percent + '%';
+            progressBar.textContent = percent + '%';
+            
+            const uploadedMB = (loaded / (1024 * 1024)).toFixed(2);
+            const totalMB = (total / (1024 * 1024)).toFixed(2);
+            progressText.textContent = `Uploaded ${uploadedMB} MB of ${totalMB} MB`;
+            
+            // Calculate time remaining
+            if (uploadStartTime && loaded > 0) {
+                const elapsed = (Date.now() - uploadStartTime) / 1000; // seconds
+                const rate = loaded / elapsed; // bytes per second
+                const remaining = total - loaded;
+                const secondsRemaining = remaining / rate;
+                
+                if (secondsRemaining > 0 && secondsRemaining < 3600) {
+                    if (secondsRemaining < 60) {
+                        timeRemaining.textContent = `~${Math.ceil(secondsRemaining)}s remaining`;
+                    } else {
+                        const minutes = Math.floor(secondsRemaining / 60);
+                        const seconds = Math.ceil(secondsRemaining % 60);
+                        timeRemaining.textContent = `~${minutes}m ${seconds}s remaining`;
+                    }
+                } else if (secondsRemaining >= 3600) {
+                    const hours = Math.floor(secondsRemaining / 3600);
+                    const minutes = Math.floor((secondsRemaining % 3600) / 60);
+                    timeRemaining.textContent = `~${hours}h ${minutes}m remaining`;
+                } else {
+                    timeRemaining.textContent = 'Almost done...';
+                }
+            } else {
+                timeRemaining.textContent = 'Calculating...';
+            }
+        }
+
+        function showProgress(show) {
+            const progressContainer = document.getElementById('progressContainer');
+            if (show) {
+                progressContainer.classList.add('show');
+                updateProgress(0, 0);
+            } else {
+                progressContainer.classList.remove('show');
+            }
+        }
+
+        // File upload form handler with progress tracking
+        document.getElementById('fileUploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('center_code', document.getElementById('upload_center_code').value);
+            formData.append('patient_id', document.getElementById('upload_patient_id').value);
+            formData.append('age', document.getElementById('upload_age').value);
+            formData.append('sex', document.getElementById('upload_sex').value);
+            
+            const fileInput = document.getElementById('upload_files');
+            if (fileInput.files.length === 0) {
+                showAlert('Please select at least one file to upload', 'error');
+                return;
+            }
+            
+            // Calculate total size
+            let totalSize = 0;
+            for (let file of fileInput.files) {
+                formData.append('files', file);
+                totalSize += file.size;
+            }
+            
+            showLoading(true);
+            showProgress(true);
+            document.getElementById('responseDetails').classList.remove('show');
+            uploadStartTime = Date.now();
+            
+            try {
+                // Use XMLHttpRequest for progress tracking
+                const xhr = new XMLHttpRequest();
+                
+                // Track upload progress
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        updateProgress(e.loaded, e.total);
+                    }
+                });
+                
+                // Handle completion
+                xhr.addEventListener('load', () => {
+                    if (xhr.status === 200) {
+                        const data = JSON.parse(xhr.responseText);
+                        const fileCount = data.uploaded_files ? data.uploaded_files.length : 0;
+                        showAlert(`✅ Success! Patient ${data.patient_data.patient_id} and ${fileCount} file(s) synced to Girder.`, 'success');
+                        showResponseDetails(data);
+                        updateProgress(totalSize, totalSize); // Show 100%
+                    } else {
+                        const data = JSON.parse(xhr.responseText);
+                        showAlert(`❌ Error: ${data.detail || 'Failed to upload files'}`, 'error');
+                        showResponseDetails(data);
+                    }
+                    showLoading(false);
+                    showProgress(false);
+                });
+                
+                // Handle errors
+                xhr.addEventListener('error', () => {
+                    showAlert(`❌ Network Error: Upload failed`, 'error');
+                    showLoading(false);
+                    showProgress(false);
+                });
+                
+                xhr.addEventListener('abort', () => {
+                    showAlert('Upload cancelled', 'info');
+                    showLoading(false);
+                    showProgress(false);
+                });
+                
+                // Start upload
+                xhr.open('POST', `${API_URL}/redcap/upload`);
+                xhr.send(formData);
+                
+            } catch (error) {
+                showAlert(`❌ Error: ${error.message}`, 'error');
+                console.error('Error:', error);
+                showLoading(false);
+                showProgress(false);
+            }
+        });
+
+        // Check if server is running on page load
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch(`${API_URL}/`);
+                if (response.ok) {
+                    showAlert('✅ Connected to webhook server', 'success');
+                }
+            } catch (error) {
+                showAlert('⚠️ Cannot connect to webhook server. Make sure FastAPI is running on ' + API_URL, 'error');
+            }
+        });
+    </script>
+</body>
+</html>
+
